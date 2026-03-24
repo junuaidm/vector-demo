@@ -1,0 +1,441 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vector Search in SQL Server 2025</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+</head>
+<body>
+
+<!-- ======== Navigation ======== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <span class="nav-brand">Vector Search</span>
+    <a class="nav-link" href="#hero">Home</a>
+    <a class="nav-link" href="#vectors">Vectors</a>
+    <a class="nav-link" href="#cosine">Cosine</a>
+    <a class="nav-link" href="#hello-world">Hello World</a>
+    <a class="nav-link" href="#playground">Playground</a>
+    <a class="nav-link" href="#embeddings">Embeddings</a>
+    <a class="nav-link" href="#sql-features">SQL Features</a>
+    <a class="nav-link" href="#walkthrough">Walkthrough</a>
+    <a class="nav-link" href="#architecture">Architecture</a>
+    <a class="nav-link" href="#get-started">Get Started</a>
+  </div>
+</nav>
+
+<!-- ======== Hero ======== -->
+<section class="hero" id="hero">
+  <div class="hero-branding">
+    <div class="hero-author">
+      <img src="assets/photo.jpg" alt="Junaid Muringattu" class="author-photo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="author-photo-placeholder" style="display:none;">JM</div>
+      <div class="author-info">
+        <span class="author-name">Junaid Muringattu</span>
+        <span class="author-role">.NET Developer &bull; I love coding</span>
+      </div>
+    </div>
+    <div class="hero-team">
+      <img src="assets/team-logo.png" alt="UNIFIERS" class="team-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="team-logo-placeholder" style="display:none;">U</div>
+      <span class="team-name">UNIFIERS</span>
+    </div>
+  </div>
+  <h1>Vector Search in SQL Server 2025</h1>
+  <p class="subtitle">From text to embeddings to semantic search &mdash; all in T-SQL</p>
+  <ul class="learn-list">
+    <li>What are vectors?</li>
+    <li>Cosine similarity</li>
+    <li>Embedding models</li>
+    <li>SQL Server VECTOR type</li>
+    <li>DiskANN indexing</li>
+    <li>Semantic search queries</li>
+  </ul>
+</section>
+
+<!-- ======== Section 1: What Are Vectors? ======== -->
+<section id="vectors">
+  <div class="container">
+    <span class="section-label">Section 1</span>
+    <h2>What Are Vectors?</h2>
+    <p>
+      In the context of AI and machine learning, a <strong>vector</strong> is a fixed-length array of numbers
+      that represents the <em>meaning</em> of a piece of text. Think of it as coordinates in a high-dimensional
+      &ldquo;meaning space&rdquo; &mdash; words or sentences with similar meanings land close together.
+    </p>
+    <p>
+      The interactive plot below shows a simplified 2D projection of 15 words. Notice how semantically
+      related words (vehicles, colors, clothing, gear) naturally form clusters. Real embedding models
+      like <code>nomic-embed-text</code> produce 768-dimensional vectors &mdash; far more nuance
+      than we can visualise, but the principle is identical.
+    </p>
+    <div class="viz-container">
+      <canvas id="vector-canvas"></canvas>
+    </div>
+    <div class="note-box">
+      <strong>Dimensionality matters:</strong> This project uses two models &mdash;
+      <code>nomic-embed-text</code> (768 dimensions) and <code>qwen3-embedding:0.6b</code> (1024 dimensions).
+      More dimensions capture finer semantic distinctions, but require more storage and compute.
+    </div>
+  </div>
+</section>
+
+<!-- ======== Section 2: Cosine Similarity ======== -->
+<section id="cosine">
+  <div class="container">
+    <span class="section-label">Section 2</span>
+    <h2>Cosine Similarity Explained</h2>
+    <p>
+      Cosine similarity measures the <strong>angle</strong> between two vectors, not the distance between
+      their endpoints. Two vectors pointing in the same direction have a cosine similarity of <strong>1</strong>;
+      perpendicular vectors score <strong>0</strong>; opposite vectors score <strong>&minus;1</strong>.
+    </p>
+    <div class="formula">
+      cos(&theta;) = (A &middot; B) / (|A| &times; |B|)
+    </div>
+    <p>
+      Drag the arrow tips below to change the angle and watch the cosine value update in real-time:
+    </p>
+    <div class="viz-container">
+      <canvas id="cosine-canvas"></canvas>
+    </div>
+    <h3>Cosine Distance vs. Cosine Similarity</h3>
+    <p>
+      SQL Server&rsquo;s <code>vector_distance('cosine', ...)</code> returns <strong>cosine distance</strong>,
+      not similarity. The relationship is:
+    </p>
+    <div class="formula">
+      distance = 1 &minus; similarity &nbsp;&nbsp;&nbsp; (range: 0 = identical, 2 = opposite)
+    </div>
+    <p>
+      A distance of <strong>0</strong> means the vectors are identical; closer to <strong>2</strong> means
+      they point in opposite directions. When ranking search results, you sort by distance <em>ascending</em>.
+    </p>
+    <h3>Cosine vs. Euclidean Distance</h3>
+    <p>
+      <strong>Cosine</strong> cares about <em>direction</em> (what the text means) while ignoring magnitude.
+      <strong>Euclidean</strong> cares about <em>absolute position</em> in vector space. For text embeddings,
+      cosine is almost always preferred because embedding models normalise direction to encode meaning,
+      while magnitude can vary with text length.
+    </p>
+  </div>
+</section>
+
+<!-- ======== Section 2b: Hello World Step-by-Step ======== -->
+<section id="hello-world">
+  <div class="container">
+    <span class="section-label">Section 2b</span>
+    <h2>&ldquo;Hello World&rdquo; &mdash; Cosine Similarity Step by Step</h2>
+    <p>
+      Let&rsquo;s compute cosine similarity by hand using two tiny sentences and a 5-word vocabulary.
+      Click <strong>Next Step</strong> to walk through each stage of the calculation, or hit
+      <strong>Auto-play</strong> to watch the full animation.
+    </p>
+    <div id="walkthrough-container">
+      <div class="step-controls">
+        <button class="btn-secondary" data-action="prev">&larr; Prev</button>
+        <button class="btn-primary" data-action="next">Next Step &rarr;</button>
+        <button class="btn-secondary" data-action="auto">&#9654; Auto-play</button>
+        <button class="btn-secondary" data-action="reset">&#8634; Reset</button>
+        <span class="step-indicator">Step 0 / 4</span>
+      </div>
+      <div class="walkthrough-stage"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== Section 2c: Interactive Cosine Playground ======== -->
+<section id="playground">
+  <div class="container">
+    <span class="section-label">Section 2c</span>
+    <h2>Interactive Cosine Search Playground</h2>
+    <p>
+      Three hands-on demos that let you explore cosine similarity yourself. Each builds on the
+      concepts above &mdash; pick a tab and start experimenting.
+    </p>
+    <div class="note-box">
+      <strong>Note:</strong> These demos use simplified character-trigram vectors in your browser,
+      not real neural embeddings. Real models like <code>nomic-embed-text</code> capture far deeper
+      semantic meaning &mdash; this is just to show the mechanism.
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="tab-picker">Sentence Picker</button>
+      <button class="tab-btn" data-tab="tab-compare">Live Comparison</button>
+      <button class="tab-btn" data-tab="tab-search">Mini Search</button>
+    </div>
+
+    <!-- Tab 1: Sentence Picker -->
+    <div id="tab-picker" class="tab-panel active">
+      <p>Click any <strong>two</strong> sentence cards to compare their cosine similarity:</p>
+      <div id="picker-grid" class="sentence-grid"></div>
+      <div id="picker-result">
+        <p style="color:#999;text-align:center;">Select two sentences to compare.</p>
+      </div>
+    </div>
+
+    <!-- Tab 2: Live Comparison -->
+    <div id="tab-compare" class="tab-panel">
+      <p>Type any text in both fields &mdash; the similarity score updates in real-time as you type:</p>
+      <div class="compare-inputs">
+        <textarea id="compare-a" placeholder="Text A &#8212; e.g. red mountain bike"></textarea>
+        <textarea id="compare-b" placeholder="Text B &#8212; e.g. blue road bicycle"></textarea>
+      </div>
+      <div id="compare-result">
+        <p style="color:#999;text-align:center;">Type in both fields to see the similarity.</p>
+      </div>
+    </div>
+
+    <!-- Tab 3: Mini Search -->
+    <div id="tab-search" class="tab-panel">
+      <p><strong>Your browser is now a tiny vector search engine.</strong>
+        Type a query and watch 15 products ranked by similarity in real-time:</p>
+      <div class="search-box">
+        <input id="search-input" type="text" placeholder="Search &#8212; e.g. red bike budget">
+        <span class="search-icon">&#128269;</span>
+      </div>
+      <div id="search-results"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== Section 3: Embedding Models ======== -->
+<section id="embeddings">
+  <div class="container">
+    <span class="section-label">Section 3</span>
+    <h2>Embedding Models</h2>
+    <p>
+      An <strong>embedding model</strong> is the neural network that converts text into vectors.
+      Different models produce different dimensionalities and capture different nuances.
+      This project uses two models served locally by <a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a>:
+    </p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>nomic-embed-text</h4>
+        <p><strong>768 dimensions</strong> &mdash; general-purpose embedding model.
+          Used for the AdventureWorks product search and country master-data demos.</p>
+      </div>
+      <div class="feature-card">
+        <h4>qwen3-embedding:0.6b</h4>
+        <p><strong>1024 dimensions</strong> &mdash; smaller footprint alternative.
+          Used in the multi-model comparison demo to show how dimension count affects results.</p>
+      </div>
+    </div>
+    <h3>How It Works</h3>
+    <p>
+      Ollama exposes a REST API at <code>:11434</code>. An NGINX reverse proxy adds TLS
+      (port 443), which SQL Server requires for external model calls. The flow is:
+    </p>
+    <div class="formula">
+      Text &nbsp;&rarr;&nbsp; HTTPS POST to Ollama via NGINX &nbsp;&rarr;&nbsp; VECTOR(768)
+    </div>
+    <p>SQL Server calls this transparently via <code>AI_GENERATE_EMBEDDINGS()</code>.</p>
+  </div>
+</section>
+
+<!-- ======== Section 4: SQL Server 2025 Vector Features ======== -->
+<section id="sql-features">
+  <div class="container">
+    <span class="section-label">Section 4</span>
+    <h2>SQL Server 2025 Vector Features</h2>
+    <p>
+      SQL Server 2025 introduces native vector support. Here are the key features
+      demonstrated in this project, with actual code from the POC:
+    </p>
+
+    <h3>1. VECTOR Data Type</h3>
+    <p>Store fixed-length vectors directly in a column:</p>
+<pre><code class="language-sql">CREATE TABLE ProductEmbeddings (
+    ProductID   INT PRIMARY KEY,
+    chunk       NVARCHAR(2000),
+    embeddings  VECTOR(768)
+);</code></pre>
+
+    <h3>2. CREATE EXTERNAL MODEL</h3>
+    <p>Register an Ollama embedding endpoint so SQL Server can call it:</p>
+<pre><code class="language-sql">CREATE EXTERNAL MODEL ollama
+WITH (
+    LOCATION   = 'https://model-web:443/api/embed',
+    API_FORMAT = 'Ollama',
+    MODEL_TYPE = EMBEDDINGS,
+    MODEL      = 'nomic-embed-text'
+);</code></pre>
+
+    <h3>3. AI_GENERATE_EMBEDDINGS()</h3>
+    <p>Convert text to a vector in a single function call:</p>
+<pre><code class="language-sql">INSERT INTO ProductEmbeddings (ProductID, chunk, embeddings)
+SELECT
+    p.ProductID,
+    p.Name + ' ' + ISNULL(p.Color, '') + ' ' + c.Name AS chunk,
+    AI_GENERATE_EMBEDDINGS(
+        p.Name + ' ' + ISNULL(p.Color, '') + ' ' + c.Name
+        USE MODEL ollama
+    ) AS embeddings
+FROM [SalesLT].[Product] p
+JOIN [SalesLT].[ProductCategory] c
+  ON p.ProductCategoryID = c.ProductCategoryID;</code></pre>
+
+    <h3>4. vector_distance()</h3>
+    <p>Compute cosine distance between two vectors:</p>
+<pre><code class="language-sql">DECLARE @search VECTOR(768) =
+    AI_GENERATE_EMBEDDINGS('red bike budget' USE MODEL ollama);
+
+SELECT TOP(5)
+    pe.ProductID,
+    p.Name,
+    vector_distance('cosine', @search, pe.embeddings) AS distance
+FROM ProductEmbeddings pe
+JOIN [SalesLT].[Product] p ON pe.ProductID = p.ProductID
+ORDER BY distance;</code></pre>
+
+    <h3>5. CREATE VECTOR INDEX (DiskANN)</h3>
+    <p>Create an approximate nearest-neighbour index for fast search:</p>
+<pre><code class="language-sql">ALTER DATABASE SCOPED CONFIGURATION
+    SET PREVIEW_FEATURES = ON;
+
+CREATE VECTOR INDEX vec_idx
+ON ProductEmbeddings([embeddings])
+WITH (metric = 'cosine', type = 'diskann', maxdop = 8);</code></pre>
+
+    <h3>6. vector_search() &mdash; ANN Queries</h3>
+    <p>Use the index for blazing-fast approximate search:</p>
+<pre><code class="language-sql">SELECT TOP(10)
+    t.ProductID,
+    s.distance
+FROM vector_search(
+    table      = ProductEmbeddings AS t,
+    column     = [embeddings],
+    similar_to = @search,
+    metric     = 'cosine',
+    top_n      = 10
+) AS s
+ORDER BY s.distance;</code></pre>
+  </div>
+</section>
+
+<!-- ======== Section 5: End-to-End Walkthrough ======== -->
+<section id="walkthrough">
+  <div class="container">
+    <span class="section-label">Section 5</span>
+    <h2>End-to-End Walkthrough</h2>
+
+    <h3>Demo A: AdventureWorks Product Search</h3>
+    <ol>
+      <li><strong>Prepare text chunks</strong> &mdash; Combine product Name + Color + Category + Model + Description into a single searchable string.</li>
+      <li><strong>Generate embeddings</strong> &mdash; Call <code>AI_GENERATE_EMBEDDINGS()</code> on every chunk to produce 768-dimensional vectors.</li>
+      <li><strong>Create vector index</strong> &mdash; Build a DiskANN index on the embeddings column for sub-millisecond search.</li>
+      <li><strong>Run a semantic query</strong> &mdash; Search for <em>&ldquo;red mountain bike under $500&rdquo;</em> and get ranked results by cosine distance.</li>
+      <li><strong>Interpret results</strong> &mdash; Lower distance = closer match. Distance 0.0 would be an exact semantic duplicate.</li>
+    </ol>
+
+    <h3>Performance: Full Scan vs. ANN Index</h3>
+    <p>
+      Without an index, every query scans <em>all</em> rows and computes cosine distance on each one.
+      With a DiskANN vector index, the query uses approximate nearest-neighbour search &mdash;
+      orders of magnitude faster for large datasets.
+    </p>
+
+    <h3>Search Pipeline</h3>
+    <p>The complete flow from user input to ranked results:</p>
+    <div class="arch-diagram">
+      <img src="assets/pipeline.svg" alt="Search pipeline: Query, Embed, ANN Search, Rank, Results">
+    </div>
+  </div>
+</section>
+
+<!-- ======== Section 6: Architecture ======== -->
+<section id="architecture">
+  <div class="container">
+    <span class="section-label">Section 6</span>
+    <h2>Architecture</h2>
+    <p>
+      The entire stack runs in Docker Compose with 6 orchestrated services. SQL Server connects
+      to Ollama through an NGINX TLS proxy because <code>CREATE EXTERNAL MODEL</code> requires HTTPS.
+    </p>
+    <div class="arch-diagram">
+      <img src="assets/architecture.svg" alt="Docker Compose architecture diagram">
+    </div>
+    <h3>Why the TLS Proxy?</h3>
+    <p>
+      SQL Server 2025 requires HTTPS endpoints for external model calls. Since Ollama only serves
+      plain HTTP, an NGINX reverse proxy with a self-signed certificate bridges the gap.
+      The certificate is generated at startup by the <code>config</code> service and shared
+      via a Docker volume.
+    </p>
+    <h3>Services</h3>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>config</h4>
+        <p>Alpine container that generates self-signed SSL certificates at startup.</p>
+      </div>
+      <div class="feature-card">
+        <h4>ollama</h4>
+        <p>Runs embedding models (<code>nomic-embed-text</code>, <code>qwen3-embedding:0.6b</code>) on port 11434.</p>
+      </div>
+      <div class="feature-card">
+        <h4>model-web (NGINX)</h4>
+        <p>TLS reverse proxy exposing Ollama over HTTPS on port 443.</p>
+      </div>
+      <div class="feature-card">
+        <h4>model-puller</h4>
+        <p>Sidecar that pulls the required models into Ollama on first startup.</p>
+      </div>
+      <div class="feature-card">
+        <h4>sql1</h4>
+        <p>SQL Server 2025 with vector support. Trusts the generated TLS certificate.</p>
+      </div>
+      <div class="feature-card">
+        <h4>sql-tools</h4>
+        <p>Runs <code>configure_model.sql</code> to register the external model endpoint.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== Section 7: Getting Started ======== -->
+<section id="get-started">
+  <div class="container">
+    <span class="section-label">Section 7</span>
+    <h2>Getting Started</h2>
+    <h3>Prerequisites</h3>
+    <ul>
+      <li><a href="https://docs.docker.com/get-docker/" target="_blank" rel="noopener">Docker Desktop</a> (or Docker Engine + Compose)</li>
+      <li>~8 GB RAM available for the Ollama models</li>
+      <li>SQL Server Management Studio or Azure Data Studio for running the demo SQL files</li>
+    </ul>
+    <h3>Quick Start</h3>
+    <div class="cmd-block">docker compose up -d</div>
+    <p>This starts all 6 services. On first run, model download may take a few minutes.</p>
+    <h3>Run the Demos</h3>
+    <ol>
+      <li>Connect to <code>localhost:1433</code> with SA credentials from the compose file.</li>
+      <li>Run <strong>vector-demos.sql</strong> &mdash; AdventureWorks product search (Demo A).</li>
+      <li>Run <strong>vector-demos-refrence.sql</strong> &mdash; Country master data search (Demo B).</li>
+      <li>Run <strong>vector-demos-refrence-qwen.sql</strong> &mdash; Multi-model comparison (Demo C).</li>
+    </ol>
+    <p>
+      Each SQL file is self-contained with comments explaining every step.
+    </p>
+  </div>
+</section>
+
+<!-- ======== Footer ======== -->
+<footer class="footer">
+  <p>Vector Search in SQL Server 2025 &mdash; Demo &amp; Learning Resource</p>
+  <p>Built with SQL Server 2025, Ollama, Docker Compose</p>
+</footer>
+
+<!-- ======== Scripts ======== -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
+<script src="js/trigram-vectorizer.js"></script>
+<script src="js/vector-viz.js"></script>
+<script src="js/cosine-viz.js"></script>
+<script src="js/cosine-walkthrough.js"></script>
+<script src="js/cosine-playground.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

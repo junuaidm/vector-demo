@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 160" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#0078d4"/>
+    </marker>
+  </defs>
+
+  <!-- Step 1: Query -->
+  <rect x="10" y="40" width="130" height="70" rx="8" fill="#deecf9" stroke="#0078d4" stroke-width="1.5"/>
+  <text x="75" y="68" text-anchor="middle" font-size="11" font-weight="700" fill="#005a9e">Query Text</text>
+  <text x="75" y="86" text-anchor="middle" font-size="9" fill="#555">"red mountain bike"</text>
+
+  <!-- Arrow 1→2 -->
+  <line x1="142" y1="75" x2="170" y2="75" stroke="#0078d4" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Step 2: Embed -->
+  <rect x="172" y="40" width="130" height="70" rx="8" fill="#e3fafc" stroke="#0078d4" stroke-width="1.5"/>
+  <text x="237" y="68" text-anchor="middle" font-size="11" font-weight="700" fill="#005a9e">Embed</text>
+  <text x="237" y="86" text-anchor="middle" font-size="9" fill="#555">AI_GENERATE_EMBEDDINGS</text>
+  <text x="237" y="98" text-anchor="middle" font-size="8" fill="#999">→ VECTOR(768)</text>
+
+  <!-- Arrow 2→3 -->
+  <line x1="304" y1="75" x2="332" y2="75" stroke="#0078d4" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Step 3: ANN Search -->
+  <rect x="334" y="40" width="140" height="70" rx="8" fill="#d3f9d8" stroke="#40c057" stroke-width="1.5"/>
+  <text x="404" y="68" text-anchor="middle" font-size="11" font-weight="700" fill="#2b8a3e">ANN Search</text>
+  <text x="404" y="86" text-anchor="middle" font-size="9" fill="#555">vector_search()</text>
+  <text x="404" y="98" text-anchor="middle" font-size="8" fill="#999">DiskANN Index</text>
+
+  <!-- Arrow 3→4 -->
+  <line x1="476" y1="75" x2="504" y2="75" stroke="#0078d4" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Step 4: Rank -->
+  <rect x="506" y="40" width="120" height="70" rx="8" fill="#fff3cd" stroke="#fd7e14" stroke-width="1.5"/>
+  <text x="566" y="68" text-anchor="middle" font-size="11" font-weight="700" fill="#e67700">Rank</text>
+  <text x="566" y="86" text-anchor="middle" font-size="9" fill="#555">vector_distance()</text>
+  <text x="566" y="98" text-anchor="middle" font-size="8" fill="#999">cosine metric</text>
+
+  <!-- Arrow 4→5 -->
+  <line x1="628" y1="75" x2="656" y2="75" stroke="#0078d4" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Step 5: Results -->
+  <rect x="658" y="40" width="110" height="70" rx="8" fill="#f3f0ff" stroke="#7950f2" stroke-width="1.5"/>
+  <text x="713" y="68" text-anchor="middle" font-size="11" font-weight="700" fill="#6741d9">Results</text>
+  <text x="713" y="86" text-anchor="middle" font-size="9" fill="#555">TOP N rows</text>
+  <text x="713" y="98" text-anchor="middle" font-size="8" fill="#999">by similarity</text>
+
+  <!-- Labels below -->
+  <text x="75" y="135" text-anchor="middle" font-size="9" fill="#999">User Input</text>
+  <text x="237" y="135" text-anchor="middle" font-size="9" fill="#999">Ollama Model</text>
+  <text x="404" y="135" text-anchor="middle" font-size="9" fill="#999">Vector Index</text>
+  <text x="566" y="135" text-anchor="middle" font-size="9" fill="#999">Score &amp; Sort</text>
+  <text x="713" y="135" text-anchor="middle" font-size="9" fill="#999">Semantic Matches</text>
+</svg>
