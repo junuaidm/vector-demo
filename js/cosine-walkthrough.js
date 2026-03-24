@@ -152,7 +152,7 @@ const CosineWalkthrough = (() => {
             <td></td>
           </tr>
           <tr>
-            <td class="vector-label">A×B</td>
+            <td class="vector-label">A.B</td>
             ${pairs.map(p => `<td><span class="vector-cell highlight-result">${p.product}</span></td>`).join("")}
             <td style="padding-left:12px;">
               <span style="font-size:20px;font-weight:700;">= ${dotProduct}</span>
@@ -185,7 +185,7 @@ const CosineWalkthrough = (() => {
         </div>
       </div>
       <p style="text-align:center;font-size:14px;">
-        <strong>|A| × |B| = ${magA.toFixed(4)} × ${magB.toFixed(4)} = ${(magA * magB).toFixed(4)}</strong>
+        <strong>|A| |B| = ${magA.toFixed(4)} × ${magB.toFixed(4)} = ${(magA * magB).toFixed(4)}</strong>
       </p>`;
   }
 
@@ -209,7 +209,7 @@ const CosineWalkthrough = (() => {
       <h3>Step 4: Divide → Cosine Score</h3>
       <div style="text-align:center;margin:20px 0;">
         <div style="font-size:16px;color:#555;margin-bottom:12px;">
-          cos(θ) = (A · B) / (|A| × |B|) = ${dotProduct} / ${(magA * magB).toFixed(4)}
+          cos(θ) = (A · B) / (|A| |B|) = ${dotProduct} / ${(magA * magB).toFixed(4)}
         </div>
         <div style="font-size:42px;font-weight:700;color:#40c057;">${cosine.toFixed(4)}</div>
         <div class="gauge-wrap" style="margin-top:16px;">
